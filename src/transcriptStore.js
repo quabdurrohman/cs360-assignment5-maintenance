@@ -15,9 +15,10 @@ export class TranscriptStore {
   }
 
   getStudentIDs(name) {
+    const search = name === undefined ? undefined : String(name).trim().toLowerCase();
     const matches = [];
     for (const student of this.#students.values()) {
-      if (name === undefined || student.studentName.trim().toLowerCase() === String(name).trim().toLowerCase())  {
+      if (search === undefined || student.studentName.trim().toLowerCase() === search) {
         matches.push(student.studentID);
       }
     }
@@ -37,24 +38,17 @@ export class TranscriptStore {
     if (!this.#students.delete(parsedID)) {
       throw new Error(`Student not found: ${parsedID}`);
     }
-    this.#grades.delete(parsedID)
-
+    this.#grades.delete(parsedID);
   }
 
   addGrade(studentID, course, grade) {
     const parsedID = this.#requireStudent(studentID).studentID;
-    const normalizedCourse = String(course ?? "").trim().toUpperCase();
-    if (!normalizedCourse) {
-      throw new Error("Course name is required");
-    }
-    const numericGrade = Number(grade);
-    if (!Number.isInteger(numericGrade) || numericGrade < 0 || numericGrade > 100) {
-      throw new Error("Grade must be an integer from 0 to 100");
-    }
+    const normalizedCourse = this.#normalizeCourse(course);
+    const numericGrade = this.#parseGrade(grade);
 
     const studentGrades = this.#grades.get(parsedID) ?? new Map();
     if (studentGrades.has(normalizedCourse)) {
-    throw new Error(`Grade already exists for course ${normalizedCourse}`);
+      throw new Error(`Grade already exists for course ${normalizedCourse}`);
     }
     studentGrades.set(normalizedCourse, numericGrade);
     this.#grades.set(parsedID, studentGrades);
@@ -63,14 +57,8 @@ export class TranscriptStore {
 
   changeGrade(studentID, course, grade) {
     const parsedID = this.#requireStudent(studentID).studentID;
-    const normalizedCourse = String(course ?? "").trim().toUpperCase();
-    if (!normalizedCourse) {
-      throw new Error("Course name is required");
-    }
-    const numericGrade = Number(grade);
-    if (!Number.isInteger(numericGrade) || numericGrade < 0 || numericGrade > 100) {
-      throw new Error("Grade must be an integer from 0 to 100");
-    }
+    const normalizedCourse = this.#normalizeCourse(course);
+    const numericGrade = this.#parseGrade(grade);
 
     const studentGrades = this.#grades.get(parsedID);
     if (!studentGrades?.has(normalizedCourse)) {
@@ -91,6 +79,22 @@ export class TranscriptStore {
     return [...(this.#grades.get(parsedID)?.entries() ?? [])].map(
       ([course, grade]) => ({ studentID: parsedID, course, grade }),
     );
+  }
+
+  #normalizeCourse(course) {
+    const normalizedCourse = String(course ?? "").trim().toUpperCase();
+    if (!normalizedCourse) {
+      throw new Error("Course name is required");
+    }
+    return normalizedCourse;
+  }
+
+  #parseGrade(grade) {
+    const numericGrade = Number(grade);
+    if (!Number.isInteger(numericGrade) || numericGrade < 0 || numericGrade > 100) {
+      throw new Error("Grade must be an integer from 0 to 100");
+    }
+    return numericGrade;
   }
 
   #parseStudentID(studentID) {
