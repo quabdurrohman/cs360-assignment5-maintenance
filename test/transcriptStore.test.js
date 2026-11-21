@@ -80,4 +80,13 @@ describe("TranscriptStore", () => {
 
   assert.equal(store.getTranscript(id).student.studentName, "Bob");
 });
+  test("REF-201: changeGrade validates course and grade", () => {
+    const id = store.addStudent("Ada");
+    store.addGrade(id, "CS360", 80);
+
+    assert.throws(() => store.changeGrade(id, "", 90), /Course name is required/);
+    assert.throws(() => store.changeGrade(id, "CS360", 101), /Grade must be an integer from 0 to 100/);
+    assert.throws(() => store.changeGrade(id, "CS360", -1), /Grade must be an integer from 0 to 100/);
+    assert.throws(() => store.changeGrade(id, "CS360", "abc"), /Grade must be an integer from 0 to 100/);
+  });
 });
